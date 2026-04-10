@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<title>CalorieCheck — AI 칼로리 분석</title>
+<link rel="manifest" href="/manifest.json">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --green:#1D9E75;--green-l:#E1F5EE;--green-d:#0F6E56;--green-dd:#085041;
+  --bg:#F8F8F6;--card:#fff;--border:#EBEBЕ7;
+  --text:#18181A;--text2:#6B6A67;--text3:#ABABА7;
+  --red:#E84040;--amber:#F0A020;
+  --r:16px;--r-sm:12px;--r-xs:8px;
+  --font:'Nunito',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;display:flex;justify-content:center;align-items:flex-start}
+.app{width:100%;max-width:440px;min-height:100vh;background:var(--bg);display:flex;flex-direction:column}
+
+/* Header */
+.hdr{background:var(--card);border-bottom:1px solid #EBEBEB;padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{font-size:20px;font-weight:900;letter-spacing:-0.5px;color:var(--text)}
+.logo span{color:var(--green)}
+.lang-btn{background:var(--green-l);color:var(--green-dd);border:none;border-radius:99px;padding:6px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:opacity 0.15s}
+.lang-btn:hover{opacity:0.8}
+
+/* Nav */
+.nav{background:var(--card);border-bottom:1px solid #EBEBEB;display:flex}
+.nb{flex:1;padding:12px 0;border:none;background:none;font-size:13px;font-weight:700;color:var(--text3);cursor:pointer;font-family:var(--font);border-bottom:2.5px solid transparent;transition:all 0.15s}
+.nb.on{color:var(--green-d);border-bottom-color:var(--green)}
+
+/* Pages */
+.pg{display:none;padding:16px;flex-direction:column;gap:12px;flex:1}
+.pg.on{display:flex}
+
+/* Upload */
+.upload{border:2px dashed #DEDED9;border-radius:var(--r);background:var(--card);cursor:pointer;transition:all 0.2s;overflow:hidden;min-height:200px;display:flex;align-items:center;justify-content:center}
+.upload:hover{border-color:var(--green);background:var(--green-l)}
+.upload.filled{border-style:solid;border-color:var(--green);min-height:auto}
+.upload img{width:100%;max-height:280px;object-fit:cover;display:block}
+.upload-ph{text-align:center;padding:24px}
+.uico{font-size:40px;margin-bottom:10px}
+.ut{font-size:15px;font-weight:700;color:var(--text);margin-bottom:4px}
+.us{font-size:13px;color:var(--text2)}
+
+/* Buttons */
+.btn{width:100%;padding:15px;border:none;border-radius:var(--r-sm);font-size:16px;font-weight:800;cursor:pointer;font-family:var(--font);transition:all 0.15s}
+.btn-green{background:var(--green);color:#fff;box-shadow:0 4px 16px rgba(29,158,117,0.25)}
+.btn-green:hover{background:var(--green-d)}
+.btn-green:disabled{background:#DEDED9;color:var(--text3);cursor:not-allowed;box-shadow:none}
+.btn-outline{background:none;border:1.5px solid var(--green);color:var(--green-d);font-size:14px;padding:12px}
+.btn-outline:hover{background:var(--green-l)}
+
+/* Loading */
+.loading{display:none;background:var(--card);border-radius:var(--r);padding:28px;text-align:center}
+.loading.on{display:block}
+.spin{width:40px;height:40px;border:3px solid var(--green-l);border-top-color:var(--green);border-radius:50%;animation:spin 0.75s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin-t{font-size:14px;font-weight:600;color:var(--text2)}
+.dots span{animation:blink 1.2s infinite;opacity:0}
+.dots span:nth-child(2){animation-delay:0.2s}
+.dots span:nth-child(3){animation-delay:0.4s}
+@keyframes blink{0%,80%,100%{opacity:0}40%{opacity:1}}
+
+/* Result */
+.result{display:none;border-radius:var(--r);overflow:hidden;background:var(--card);border:1px solid #EBEBEB}
+.result.on{display:block}
+.res-top{background:var(--green-l);padding:20px}
+.res-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green);color:#fff;border-radius:99px;padding:4px 12px;font-size:11px;font-weight:700;margin-bottom:12px}
+.food-name{font-size:18px;font-weight:800;color:var(--green-dd);margin-bottom:12px}
+.cal-row{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
+.cal-num{font-size:56px;font-weight:900;color:var(--green-dd);line-height:1;letter-spacing:-2px}
+.cal-unit{font-size:16px;font-weight:700;color:var(--green-d)}
+.macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+.mac{background:#fff;border-radius:var(--r-xs);padding:10px 6px;text-align:center}
+.mac-v{font-size:16px;font-weight:800;color:var(--text)}
+.mac-l{font-size:10px;font-weight:600;color:var(--text2);margin-top:2px}
+.res-detail{padding:16px 20px}
+.detail-t{font-size:12px;font-weight:700;color:var(--text2);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px}
+.detail-body{font-size:13px;color:var(--text2);line-height:1.75}
+
+/* Today summary */
+.today{background:var(--card);border-radius:var(--r);padding:16px 18px;border:1px solid #EBEBEB}
+.today-l{font-size:11px;font-weight:700;color:var(--green-d);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:8px}
+.today-v{font-size:36px;font-weight:900;color:var(--green-dd);letter-spacing:-1px}
+.today-v span{font-size:14px;font-weight:600;color:var(--green);letter-spacing:0}
+.prog-wrap{margin-top:10px}
+.prog-bg{height:6px;background:#EBEBEB;border-radius:99px;overflow:hidden}
+.prog-fill{height:100%;background:var(--green);border-radius:99px;transition:width 0.5s ease}
+.prog-info{display:flex;justify-content:space-between;margin-top:6px}
+.prog-pct{font-size:12px;font-weight:700;color:var(--green-d)}
+.prog-goal{font-size:12px;color:var(--text3)}
+
+/* Log items */
+.log-item{background:var(--card);border-radius:var(--r-sm);padding:14px;display:flex;gap:12px;align-items:center;border:1px solid #EBEBEB}
+.log-thumb{width:56px;height:56px;border-radius:var(--r-xs);object-fit:cover;background:#EBEBEB;flex-shrink:0}
+.log-info{flex:1;min-width:0}
+.log-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.log-cal{font-size:22px;font-weight:900;color:var(--green-dd);letter-spacing:-0.5px}
+.log-cal span{font-size:12px;font-weight:600;color:var(--text3);letter-spacing:0}
+.log-mac{font-size:11px;color:var(--text3);margin-top:3px}
+.log-time{font-size:11px;color:var(--text3);margin-top:3px}
+
+/* Empty */
+.empty{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-ico{font-size:40px;margin-bottom:12px}
+.empty-t{font-size:14px;font-weight:600;white-space:pre-line;line-height:1.6}
+
+/* Settings */
+.set-card{background:var(--card);border-radius:var(--r);border:1px solid #EBEBEB;overflow:hidden}
+.set-row{display:flex;justify-content:space-between;align-items:center;padding:15px 18px;border-bottom:1px solid #EBEBEB}
+.set-row:last-child{border-bottom:none}
+.set-l{font-size:14px;font-weight:600;color:var(--text)}
+.set-s{font-size:11px;color:var(--text3);margin-top:2px}
+.set-v{font-size:14px;font-weight:700;color:var(--green-d)}
+.goal-in{width:80px;padding:7px 10px;border:1.5px solid #DEDED9;border-radius:var(--r-xs);font-size:14px;font-weight:700;text-align:right;font-family:var(--font);color:var(--text);background:var(--bg)}
+.goal-in:focus{outline:none;border-color:var(--green)}
+.del-btn{width:100%;padding:14px;background:none;border:1.5px solid #FFCDD2;border-radius:var(--r-sm);color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:4px;transition:background 0.15s}
+.del-btn:hover{background:#FFF5F5}
+
+/* Notice */
+.notice{background:#FFF8E1;border:1px solid #FFE082;border-radius:var(--r-sm);padding:12px 14px;font-size:12px;color:#5D4037;line-height:1.6}
+.notice a{color:var(--green-d);font-weight:700}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="logo">Calorie<span>Check</span></div>
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">English</button>
+  </div>
+
+  <div class="nav">
+    <button class="nb on" id="nb-a" onclick="go('a')">분석</button>
+    <button class="nb" id="nb-h" onclick="go('h')">기록</button>
+    <button class="nb" id="nb-s" onclick="go('s')">설정</button>
+  </div>
+
+  <!-- 분석 페이지 -->
+  <div class="pg on" id="pg-a">
+    <div class="upload" id="uploadBox" onclick="document.getElementById('fi').click()">
+      <div class="upload-ph" id="upPH">
+        <div class="uico">📷</div>
+        <div class="ut" id="upT">음식 사진을 올려주세요</div>
+        <div class="us" id="upS">탭해서 사진 선택하기</div>
+      </div>
+      <img id="prevImg" style="display:none" alt="food preview"/>
+    </div>
+    <input type="file" id="fi" accept="image/*" style="display:none" onchange="onFile(event)"/>
+
+    <button class="btn btn-green" id="analyzeBtn" onclick="doAnalyze()" disabled>
+      <span id="analyzeBtnT">AI 칼로리 분석하기</span>
+    </button>
+
+    <div class="loading" id="loading">
+      <div class="spin"></div>
+      <div class="spin-t" id="spinT">AI가 음식을 분석하고 있어요<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+    </div>
+
+    <div class="result" id="resultBox">
+      <div class="res-top">
+        <div class="res-badge">✓ <span id="resBadge">AI 분석 완료</span></div>
+        <div class="food-name" id="foodName">—</div>
+        <div class="cal-row">
+          <div class="cal-num" id="calNum">0</div>
+          <div class="cal-unit">kcal</div>
+        </div>
+        <div class="macros">
+          <div class="mac"><div class="mac-v" id="mCarb">0g</div><div class="mac-l" id="lCarb">탄수화물</div></div>
+          <div class="mac"><div class="mac-v" id="mProt">0g</div><div class="mac-l" id="lProt">단백질</div></div>
+          <div class="mac"><div class="mac-v" id="mFat">0g</div><div class="mac-l" id="lFat">지방</div></div>
+          <div class="mac"><div class="mac-v" id="mSod">0mg</div><div class="mac-l" id="lSod">나트륨</div></div>
+        </div>
+      </div>
+      <div class="res-detail">
+        <div class="detail-t" id="detailT">영양 정보 & 조언</div>
+        <div class="detail-body" id="detailBody">—</div>
+      </div>
+      <div style="padding:0 16px 16px">
+        <button class="btn btn-outline" id="saveBtn" onclick="saveLog()">기록에 저장하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 기록 페이지 -->
+  <div class="pg" id="pg-h">
+    <div class="today" id="todayCard">
+      <div class="today-l" id="todayL">오늘 섭취 칼로리</div>
+      <div class="today-v"><span id="todayV">0</span> <span>kcal</span></div>
+      <div class="prog-wrap">
+        <div class="prog-bg"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+        <div class="prog-info">
+          <span class="prog-pct" id="progPct">0%</span>
+          <span class="prog-goal" id="progGoal">목표 2000kcal</span>
+        </div>
+      </div>
+    </div>
+    <div id="logList"></div>
+  </div>
+
+  <!-- 설정 페이지 -->
+  <div class="pg" id="pg-s">
+    <div class="set-card">
+      <div class="set-row">
+        <div>
+          <div class="set-l" id="sGL">일일 칼로리 목표</div>
+          <div class="set-s" id="sGS">권장: 남성 2500 / 여성 2000 kcal</div>
+        </div>
+        <input class="goal-in" type="number" id="goalIn" value="2000" min="500" max="5000" onchange="saveGoal()"/>
+      </div>
+      <div class="set-row">
+        <div class="set-l" id="sLL">언어</div>
+        <div class="set-v" id="sLV">한국어</div>
+      </div>
+      <div class="set-row">
+        <div class="set-l">앱 버전</div>
+        <div class="set-v">v1.0.0</div>
+      </div>
+      <div class="set-row">
+        <div class="set-l">개발</div>
+        <div class="set-v">CalorieCheck</div>
+      </div>
+    </div>
+    <button class="del-btn" id="delBtn" onclick="clearLogs()">기록 전체 삭제</button>
+    <div class="notice" id="noticeBox">
+      ℹ️ CalorieCheck는 <strong>완전 무료</strong>로 제공됩니다. 광고 없이 AI 칼로리 분석을 이용하세요.
+    </div>
+  </div>
+
+</div>
+
+<script>
+let lang = 'ko';
+let imgB64 = null;
+let imgType = 'image/jpeg';
+let curResult = null;
+let logs = JSON.parse(localStorage.getItem('cc_logs') || '[]');
+let goal = parseInt(localStorage.getItem('cc_goal') || '2000');
+
+const T = {
+  ko: {
+    nb: ['분석','기록','설정'],
+    upT: '음식 사진을 올려주세요', upS: '탭해서 사진 선택하기',
+    analyzeBtn: 'AI 칼로리 분석하기',
+    spinT: 'AI가 음식을 분석하고 있어요',
+    resBadge: 'AI 분석 완료',
+    carb:'탄수화물', prot:'단백질', fat:'지방', sod:'나트륨',
+    detailT: '영양 정보 & 조언',
+    saveBtn: '기록에 저장하기', saved: '저장 완료!',
+    todayL: '오늘 섭취 칼로리',
+    progGoal: (g) => `목표 ${g.toLocaleString()}kcal`,
+    sGL: '일일 칼로리 목표', sGS: '권장: 남성 2500 / 여성 2000 kcal',
+    sLL: '언어', sLV: '한국어',
+    delBtn: '기록 전체 삭제',
+    notice: 'ℹ️ CalorieCheck는 <strong>완전 무료</strong>로 제공됩니다. 광고 없이 AI 칼로리 분석을 이용하세요.',
+    delConfirm: '모든 기록을 삭제할까요?',
+    noImg: '사진을 먼저 선택해주세요',
+    errMsg: '분석 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.',
+    langBtn: 'English',
+    empty: '아직 기록이 없어요\n음식 사진을 분석하고 저장해보세요',
+    prompt: `이 음식 사진을 분석해서 JSON만 반환해줘. 설명 없이 JSON만:
+{"name":"음식이름","calories":숫자,"carbs":숫자,"protein":숫자,"fat":숫자,"sodium":숫자,"detail":"이 음식의 영양 정보와 건강 조언 2~3문장"}
+모든 숫자는 정수. sodium은 mg 단위.`
+  },
+  en: {
+    nb: ['Analyze','History','Settings'],
+    upT: 'Upload a food photo', upS: 'Tap to select a photo',
+    analyzeBtn: 'Analyze with AI',
+    spinT: 'AI is analyzing your food',
+    resBadge: 'AI Analysis Done',
+    carb:'Carbs', prot:'Protein', fat:'Fat', sod:'Sodium',
+    detailT: 'Nutrition Info & Tips',
+    saveBtn: 'Save to History', saved: 'Saved!',
+    todayL: "Today's Calories",
+    progGoal: (g) => `Goal: ${g.toLocaleString()} kcal`,
+    sGL: 'Daily Calorie Goal', sGS: 'Recommended: Men 2500 / Women 2000',
+    sLL: 'Language', sLV: 'English',
+    delBtn: 'Delete All Records',
+    notice: 'ℹ️ CalorieCheck is <strong>completely free</strong>. Enjoy AI calorie analysis with no ads.',
+    delConfirm: 'Delete all records?',
+    noImg: 'Please select a photo first',
+    errMsg: 'Analysis failed. Please try again.',
+    langBtn: '한국어',
+    empty: 'No records yet\nAnalyze a food photo and save it',
+    prompt: `Analyze this food image and return ONLY JSON. No explanation, just JSON:
+{"name":"food name","calories":number,"carbs":number,"protein":number,"fat":number,"sodium":number,"detail":"2-3 sentences about nutrition and health tips"}
+All numbers must be integers. sodium in mg.`
+  }
+};
+
+function t(k, ...a) {
+  const v = T[lang][k];
+  return typeof v === 'function' ? v(...a) : v;
+}
+
+function applyLang() {
+  const nb = t('nb');
+  ['a','h','s'].forEach((x,i) => document.getElementById('nb-'+x).textContent = nb[i]);
+  document.getElementById('langBtn').textContent = t('langBtn');
+  document.getElementById('upT').textContent = t('upT');
+  document.getElementById('upS').textContent = t('upS');
+  document.getElementById('analyzeBtnT').textContent = t('analyzeBtn');
+  document.getElementById('spinT').innerHTML = t('spinT') + '<span class="dots"><span>.</span><span>.</span><span>.</span></span>';
+  document.getElementById('resBadge').textContent = t('resBadge');
+  document.getElementById('lCarb').textContent = t('carb');
+  document.getElementById('lProt').textContent = t('prot');
+  document.getElementById('lFat').textContent = t('fat');
+  document.getElementById('lSod').textContent = t('sod');
+  document.getElementById('detailT').textContent = t('detailT');
+  document.getElementById('saveBtn').textContent = t('saveBtn');
+  document.getElementById('todayL').textContent = t('todayL');
+  document.getElementById('sGL').textContent = t('sGL');
+  document.getElementById('sGS').textContent = t('sGS');
+  document.getElementById('sLL').textContent = t('sLL');
+  document.getElementById('sLV').textContent = t('sLV');
+  document.getElementById('delBtn').textContent = t('delBtn');
+  document.getElementById('noticeBox').innerHTML = t('notice');
+  renderLogs();
+}
+
+function toggleLang() {
+  lang = lang === 'ko' ? 'en' : 'ko';
+  localStorage.setItem('cc_lang', lang);
+  applyLang();
+}
+
+function go(name) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('on'));
+  document.getElementById('pg-' + name).classList.add('on');
+  document.getElementById('nb-' + name).classList.add('on');
+  if (name === 'h') renderLogs();
+}
+
+function onFile(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  imgType = f.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imgB64 = ev.target.result.split(',')[1];
+    const img = document.getElementById('prevImg');
+    img.src = ev.target.result;
+    img.style.display = 'block';
+    document.getElementById('upPH').style.display = 'none';
+    document.getElementById('uploadBox').classList.add('filled');
+    document.getElementById('analyzeBtn').disabled = false;
+    document.getElementById('resultBox').classList.remove('on');
+    curResult = null;
+  };
+  reader.readAsDataURL(f);
+}
+
+async function doAnalyze() {
+  if (!imgB64) { alert(t('noImg')); return; }
+  document.getElementById('loading').classList.add('on');
+  document.getElementById('resultBox').classList.remove('on');
+  document.getElementById('analyzeBtn').disabled = true;
+
+  try {
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageBase64: imgB64, mediaType: imgType, lang })
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'error');
+
+    curResult = { ...data, img: imgB64, time: new Date().toISOString() };
+
+    document.getElementById('foodName').textContent = data.name;
+    document.getElementById('calNum').textContent = data.calories.toLocaleString();
+    document.getElementById('mCarb').textContent = data.carbs + 'g';
+    document.getElementById('mProt').textContent = data.protein + 'g';
+    document.getElementById('mFat').textContent = data.fat + 'g';
+    document.getElementById('mSod').textContent = data.sodium + 'mg';
+    document.getElementById('detailBody').textContent = data.detail;
+    document.getElementById('saveBtn').textContent = t('saveBtn');
+    document.getElementById('resultBox').classList.add('on');
+  } catch (err) {
+    alert(t('errMsg'));
+  } finally {
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('analyzeBtn').disabled = false;
+  }
+}
+
+function saveLog() {
+  if (!curResult) return;
+  logs.unshift(curResult);
+  localStorage.setItem('cc_logs', JSON.stringify(logs));
+  document.getElementById('saveBtn').textContent = t('saved');
+  setTimeout(() => document.getElementById('saveBtn').textContent = t('saveBtn'), 1500);
+}
+
+function renderLogs() {
+  goal = parseInt(document.getElementById('goalIn').value) || 2000;
+  const today = new Date().toDateString();
+  const todayLogs = logs.filter(l => new Date(l.time).toDateString() === today);
+  const total = todayLogs.reduce((s, l) => s + l.calories, 0);
+  const pct = Math.min(100, Math.round(total / goal * 100));
+
+  document.getElementById('todayV').textContent = total.toLocaleString();
+  document.getElementById('progFill').style.width = pct + '%';
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progGoal').textContent = t('progGoal', goal);
+
+  const list = document.getElementById('logList');
+  if (!logs.length) {
+    list.innerHTML = `<div class="empty"><div class="empty-ico">🍽️</div><div class="empty-t">${t('empty')}</div></div>`;
+    return;
+  }
+
+  list.innerHTML = logs.map(l => {
+    const d = new Date(l.time);
+    const ts = d.toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', {month:'short',day:'numeric'})
+      + ' ' + d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+    return `<div class="log-item">
+      <img class="log-thumb" src="data:image/jpeg;base64,${l.img}" alt="${l.name}"/>
+      <div class="log-info">
+        <div class="log-name">${l.name}</div>
+        <div class="log-cal">${l.calories.toLocaleString()} <span>kcal</span></div>
+        <div class="log-mac">${t('carb')} ${l.carbs}g · ${t('prot')} ${l.protein}g · ${t('fat')} ${l.fat}g</div>
+        <div class="log-time">${ts}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveGoal() {
+  goal = parseInt(document.getElementById('goalIn').value) || 2000;
+  localStorage.setItem('cc_goal', goal);
+  renderLogs();
+}
+
+function clearLogs() {
+  if (confirm(t('delConfirm'))) {
+    logs = [];
+    localStorage.removeItem('cc_logs');
+    renderLogs();
+  }
+}
+
+function init() {
+  const savedLang = localStorage.getItem('cc_lang');
+  if (savedLang) lang = savedLang;
+  goal = parseInt(localStorage.getItem('cc_goal') || '2000');
+  document.getElementById('goalIn').value = goal;
+  applyLang();
+}
+
+init();
+</script>
+</body>
+</html>
